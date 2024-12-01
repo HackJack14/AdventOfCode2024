@@ -8,7 +8,7 @@ import "core:strconv"
 import "core:mem"
 
 main :: proc() {
-  // Memoryleak detection
+  // Memoryleak detection boilerplate
   when ODIN_DEBUG {
 		track: mem.Tracking_Allocator
 		mem.tracking_allocator_init(&track, context.allocator)
@@ -30,8 +30,9 @@ main :: proc() {
 			mem.tracking_allocator_destroy(&track)
 		}
 	}
-	// Memoryleak detection
-	
+	// Memoryleak detection boilerplate
+
+	// Start of solution
   file, ok := os.read_entire_file_from_filename("input.txt")
   if !ok {
     panic("failed to read file")
@@ -43,17 +44,9 @@ main :: proc() {
     delete(left)
     delete(right)
   }
-
-  sum := 0
-  for i := 0; i < len(left); i += 1 {
-    if left[i] < right[i] {
-      sum += right[i] - left[i]
-    } else {
-      sum += left[i] - right[i]
-    }
-  } 
-
-  fmt.println(sum)
+  
+  fmt.printf("Part 1: %d", getScorePart1(left, right))
+  fmt.printf("Part 2: %d", getScorePart2(left, right))
 }
 
 getIdLists :: proc(file: []u8) -> (leftSlice, rightSlice: []int) {
@@ -76,4 +69,32 @@ getIdLists :: proc(file: []u8) -> (leftSlice, rightSlice: []int) {
   slice.sort(leftSlice)
   slice.sort(rightSlice)
   return
+}
+
+getScorePart1 :: proc(left, right: []int) -> int {
+  sum := 0
+  for i := 0; i < len(left); i += 1 {
+    if left[i] < right[i] {
+      sum += right[i] - left[i]
+    } else {
+      sum += left[i] - right[i]
+    }
+  }
+  return sum
+}
+
+getScorePart2 :: proc(left, right: []int) -> int {
+  sum := 0
+  for id in left {
+    i, found := slice.linear_search(right, id)
+    if found {
+      for j := i; j < len(right); j += 1 {
+        if right[j] != id {
+          break;
+        }
+        sum += id;
+      }
+    }
+  }
+  return sum
 }
