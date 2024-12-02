@@ -5,6 +5,7 @@ import "core:mem"
 import "core:strings"
 import "core:fmt"
 import "core:strconv"
+import "core:slice"
 
 main :: proc() {
   // Memoryleak detection boilerplate
@@ -41,21 +42,21 @@ main :: proc() {
 	fileAsStr := string(file)
 	sum := 0
   for line in strings.split_lines_iterator(&fileAsStr) {
-  	if isReportSafe(line) {
+  	levelsStr, err := strings.split(line, " ")
+		if err != nil {
+				panic("failed to split line")
+		}
+		levels := levelStrToLevelsInt(levelsStr)
+		delete(levelsStr)
+  	if isReportSafePart2(levels, 0) {
   		sum += 1
   	}
+  	delete(levels)
   }
   fmt.println(sum)
 }
 
-isReportSafe :: proc(report: string) -> (result: bool) {
-	levelsStr, err := strings.split(report, " ")
-	if err != nil {
-      panic("failed to split line")
-  }
-	defer delete(levelsStr)
-	levels := levelStrToLevelsInt(levelsStr)
-	defer delete(levels)
+isReportSafePart1 :: proc(levels: []int) -> (result: bool) {
 	increasing := levels[0] < levels[1]
 	for i := 0; i < len(levels) - 1; i += 1 {
 		difference := levels[i] - levels[i+1]
@@ -64,10 +65,38 @@ isReportSafe :: proc(report: string) -> (result: bool) {
 		result = (safeInc && increasing) || (safeDec && !increasing)
 
 		if !result {
-			return
+			return false
 		}
 	}
-	return
+	return true
+}
+
+isReportSafePart2 :: proc(levels: []int, depth: int) -> (result: bool) {
+	increasing := levels[0] < levels[1]
+	for i := 0; i < len(levels) - 1; i += 1 {
+		difference := levels[i] - levels[i+1]
+		safeInc := (difference <= -1) && (difference >= -3)
+		safeDec := (difference >= 1) && (difference <= 3)
+		result = (safeInc && increasing) || (safeDec && !increasing)
+
+		if !result {
+			if depth == 0 {
+				for j := 0; j < len(levels); j += 1 {
+					newLevels: [dynamic]int = slice.to_dynamic(levels)
+					ordered_remove(&newLevels, j)
+					result := isReportSafePart2(newLevels[:], 1)
+					delete(newLevels)
+					if result {
+						return result
+					}
+				}
+				return result
+			} else {
+				return false
+			}
+		}
+	}
+	return result
 }
 
 levelStrToLevelsInt :: proc(levelsStr: []string) -> []int {
