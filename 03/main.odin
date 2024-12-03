@@ -43,7 +43,7 @@ main :: proc() {
   defer delete(file)
   
   fileAsStr := string(file)
-  multis := parseForMultiplication(fileAsStr)
+  multis := parseForMultiplicationPart2(fileAsStr)
   defer delete(multis)
   sum := 0
   for mult in multis {
@@ -52,7 +52,61 @@ main :: proc() {
   fmt.println(sum)
 }
 
-parseForMultiplication :: proc(memory: string) -> [dynamic]mul {
+parseForMultiplicationPart2 :: proc(memory: string) -> [dynamic]mul {
+	multis: [dynamic]mul
+	skip := false
+	for i in 0..<len(memory) {
+		if ((memory[i] == 'd') && (memory[i+1] == 'o') && (memory[i+2] == '(') && (memory[i+3] == ')')) { // if "do()" stop skipping
+			skip = false
+			continue
+		}
+		
+		if skip {
+			continue
+		}
+
+		if ((memory[i] == 'd') && (memory[i+1] == 'o') && (memory[i+2] == 'n') && (memory[i+3] == '\'') && (memory[i+4] == 't') && (memory[i+5] == '(') && (memory[i+6] == ')')) { // if "dont't()" skip until "do()"
+			skip = true
+			continue
+		}
+		
+		if !((memory[i] == 'm') && (memory[i+1] == 'u') && (memory[i+2] == 'l') && (memory[i+3] == '(')) { // need to match "mul(" first
+			continue
+		}
+
+		mult := mul {
+			op1 = 0,
+			op2 = 0,
+		}
+		
+		num1, len1: int
+		if tryBuildNumber(memory, i+4, &num1, &len1) { // returns true if valid number. Resulting number and char length as out param
+			mult.op1 = num1
+		} else {
+			continue
+		}
+		
+		if !(memory[i+4+len1] == ',') { // need to match "," between the numbers
+			continue
+		}
+		
+		num2, len2: int
+		if tryBuildNumber(memory, i+4+len1+1, &num2, &len2) { // returns true if valid number. Resulting number and char length as out param
+			mult.op2 = num2
+		} else {
+			continue
+		}
+
+		if !(memory[i+4+len1+1+len2] == ')') { // need to match ")" at the end
+			continue
+		}
+		
+		append(&multis, mult)
+	}
+	return multis
+}
+
+parseForMultiplicationPart1 :: proc(memory: string) -> [dynamic]mul {
 	multis: [dynamic]mul
 	for i in 0..<len(memory) {
 		mult := mul {
