@@ -43,7 +43,7 @@ main :: proc() {
   defer delete(lines)
   sum := 0
   for i in 0 ..<len(lines) - 3 {
-		sum += parseForXMas(lines[i:i+4])
+		sum += parseForXMasPart2(lines[i:i+4])
 	}
 	fmt.println(sum)
 }
@@ -84,7 +84,7 @@ applyLinePadding :: proc(line: string) -> string {
 	return strings.to_string(builder)
 }
 
-parseForXMas :: proc(lines: []string) -> int {
+parseForXMasPart1 :: proc(lines: []string) -> int {
 	newLines := make([]string, 4)
 	defer delete(newLines)
 	for i in 0..<4 {
@@ -121,6 +121,36 @@ parseForXMas :: proc(lines: []string) -> int {
 		}
 		if (newLines[0][i] == 'S') && (newLines[1][i-1] == 'A') && (newLines[2][i-2] == 'M') && (newLines[3][i-3] == 'X') {
 			num += 1
+		}
+	}
+	
+	return num
+}
+
+parseForXMasPart2 :: proc(lines: []string) -> int {
+	newLines := make([]string, 4)
+	defer delete(newLines)
+	for i in 0..<4 {
+		newLines[i] = applyLinePadding(lines[i])
+	}
+	defer {
+		for i in 0..<4 {
+			delete(newLines[i])
+		}
+	}
+
+	num := 0
+	for i in 0..<len(newLines[0]) - 3 {
+		hasForwardDiagonal := ((newLines[0][i] == 'M') && (newLines[1][i+1] == 'A') && (newLines[2][i+2] == 'S')) ||
+			((newLines[0][i] == 'S') && (newLines[1][i+1] == 'A') && (newLines[2][i+2] == 'M'))
+			
+		if hasForwardDiagonal {
+			hasBackwardsDiagonal := ((newLines[0][i+2] == 'M') && (newLines[1][i-1+2] == 'A') && (newLines[2][i-2+2] == 'S')) ||
+				((newLines[0][i+2] == 'S') && (newLines[1][i-1+2] == 'A') && (newLines[2][i-2+2] == 'M'))
+				
+			if hasBackwardsDiagonal {
+				num += 1
+			}
 		}
 	}
 	
