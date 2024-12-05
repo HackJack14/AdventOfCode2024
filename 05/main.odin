@@ -58,7 +58,7 @@ main :: proc() {
   	delete(pages)
   }
 
-  fmt.println(getSumMiddleNumbers(pages, rules))
+  fmt.println(getSumMiddleNumbersPart2(pages, rules))
 }
 
 getRules :: proc(rulesStr: string) -> []Rule {
@@ -91,19 +91,14 @@ getPages :: proc (pagesStr: string) -> [][]int {
 	return pages
 }
 
-getSumMiddleNumbers :: proc(pages: [][]int, rules: []Rule) -> int {
+getSumMiddleNumbersPart1 :: proc(pages: [][]int, rules: []Rule) -> int {
 	sum := 0
 	for i in 0..<len(pages) {
 		correct := true
 		for rule in rules {
-			firstIndex := getNumberIndex(pages[i], rule.first)
-			secondIndex := getNumberIndex(pages[i], rule.second)
-			correct = (firstIndex == -1) || (secondIndex == -1)
+			correct = isRuleCorrect(pages[i], rule)
 			if !correct {
-				correct = firstIndex < secondIndex
-				if !correct {
-					break
-				}
+				break
 			}
 		}
 		if correct {
@@ -111,6 +106,44 @@ getSumMiddleNumbers :: proc(pages: [][]int, rules: []Rule) -> int {
 		}
 	}
 	return sum
+}
+
+getSumMiddleNumbersPart2 :: proc(pages: [][]int, rules: []Rule) -> int {
+	sum := 0
+	for i in 0..<len(pages) {
+		correct := true
+		for rule in rules {
+			correct = isRuleCorrect(pages[i], rule)
+			if !correct {
+				orderIncorrectNumbers(&pages[i], rules, getNumberIndex(pages[i], rule.first), getNumberIndex(pages[i], rule.second))
+				sum += getMiddleNumber(pages[i])
+				break
+			}
+		}
+	}
+	return sum
+}
+
+orderIncorrectNumbers :: proc(pages: ^[]int, rules: []Rule, failedFirstIndex, failedSecondIndex: int) {
+	correct := true
+	slice.swap(pages^, failedFirstIndex, failedSecondIndex)
+	for rule in rules {
+		correct = isRuleCorrect(pages^, rule)
+		if !correct {
+			orderIncorrectNumbers(pages, rules, getNumberIndex(pages^, rule.first), getNumberIndex(pages^, rule.second))
+		}
+	}
+}
+
+isRuleCorrect :: proc(pages: []int, rule: Rule) -> bool {
+	correct := true
+	firstIndex := getNumberIndex(pages, rule.first)
+	secondIndex := getNumberIndex(pages, rule.second)
+	correct = (firstIndex == -1) || (secondIndex == -1)
+	if !correct {
+		return firstIndex < secondIndex
+	}
+	return correct
 }
 
 getNumberIndex :: proc(pages: []int, number: int) -> int {
