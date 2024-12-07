@@ -69,7 +69,11 @@ main :: proc() {
 		}
 		delete(fields)
 	}
-	fmt.println(getNumVisitedFields(fields, &guard))
+
+	testGuard := guard
+	getVisitedFields(&fields, &testGuard)
+	fields[guard.y][guard.x] = .ftGuard
+	fmt.println(getNumInfiniteLoops(fields, guard))
 }
 
 getFieldsAndGuard :: proc(file: string, guard: ^Guard) -> [][]FieldType {
@@ -94,7 +98,7 @@ getFieldsAndGuard :: proc(file: string, guard: ^Guard) -> [][]FieldType {
 	return fields
 }
 
-getNumVisitedFields :: proc(fields: [][]FieldType, guard: ^Guard) -> int {
+getVisitedFields :: proc(fields: ^[][]FieldType, guard: ^Guard) {
 	isGuardInArea := true
 	for isGuardInArea {
 		nextX := 0
@@ -113,7 +117,6 @@ getNumVisitedFields :: proc(fields: [][]FieldType, guard: ^Guard) -> int {
 				nextX = guard.x + 1
 				nextY = guard.y + 0
 		}
-		// fmt.println(nextX, nextY)
 		isGuardInArea = ((nextY >= 0) && (nextY < len(fields))) && ((nextX >= 0) && (nextX < len(fields[0])))
 		if !isGuardInArea {
 			fields[guard.y][guard.x] = .ftVisited
@@ -129,13 +132,66 @@ getNumVisitedFields :: proc(fields: [][]FieldType, guard: ^Guard) -> int {
 			fields[guard.y][guard.x] = .ftGuard
 		}
 	}
-	sum := 0
+}
+
+getNumInfiniteLoops :: proc(fields: [][]FieldType, guard: Guard) -> int {
+	num := 0
 	for i in 0..<len(fields) {
-		for j in 0..<len(fields[i]) {
-			if fields[i][j] == .ftVisited {
-				sum += 1
+		for j in 0..<len(fields[0]) {
+			newFields := fields
+			if newFields[i][j] == .ftVisited {
+				newFields[i][j] = .ftObstacle
+				if isInfiniteLoop(newFields, guard) {
+					num += 1
+				}
+				newFields[i][j] = .ftVisited
 			}
 		}
 	}
-	return sum
+	return num
+}
+
+isInfiniteLoop :: proc(newFields: [][]FieldType, guard: Guard) -> bool {
+	previousPositions: [dynamic]Guard
+	defer delete(previousPositions)
+	previousGuard := guard
+	isGuardInArea := true
+	for isGuardInArea {
+		newGuard := previousGuard
+		nextX := 0
+		nextY := 0
+		switch newGuard.direction {
+			case .dUp:
+				nextX = newGuard.x + 0
+				nextY = newGuard.y - 1
+			case .dDown:
+				nextX = newGuard.x + 0
+				nextY = newGuard.y + 1 
+			case .dLeft:
+				nextX = newGuard.x - 1
+				nextY = newGuard.y + 0
+			case .dRight:
+				nextX = newGuard.x + 1
+				nextY = newGuard.y + 0
+		}
+		isGuardInArea = ((nextY >= 0) && (nextY < len(newFields))) && ((nextX >= 0) && (nextX < len(newFields[0])))
+		if !isGuardInArea {
+			return false
+		}
+		collided := newFields[nextY][nextX] == .ftObstacle
+		if collided {
+			newGuard.direction = Direction((int(newGuard.direction) + 1) % 4)
+			for prevGuard in previousPositions {
+				if (prevGuard.x == newGuard.x) && (prevGuard.y == newGuard.y) && (prevGuard.direction == newGuard.direction) {
+					return true
+				}
+			}
+			append(&previousPositions, newGuard)
+		} else {
+			newGuard.x = nextX
+			newGuard.y = nextY
+		}
+		previousGuard = newGuard
+	}
+	return false
 }
