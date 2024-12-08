@@ -10,6 +10,7 @@ import "core:math"
 Operator :: enum {
 	Add,
 	Multiply,
+	Concat,
 }
 
 main :: proc() {
@@ -50,7 +51,7 @@ main :: proc() {
 	for i in 0..<len(lines)-1 {
 		result, operands := getResultAndOperands(lines[i])
 		defer delete(operands)
-		if isEquationSolvable(result, operands) {
+		if isEquationSolvablePart2(result, operands) {
 			sum += result
 		}
 	}
@@ -70,7 +71,7 @@ getResultAndOperands :: proc(line: string) -> (int, []int) {
 	return result, operands
 }
 
-isEquationSolvable :: proc(result: int, operands: []int) -> bool {
+isEquationSolvablePart1 :: proc(result: int, operands: []int) -> bool {
 	numPossibilities := 1 << uint(len(operands)-1)
 	for i in 0..<numPossibilities {
 		operators := make([]Operator, len(operands)-1)
@@ -92,6 +93,30 @@ isEquationSolvable :: proc(result: int, operands: []int) -> bool {
 	return false
 }
 
+isEquationSolvablePart2 :: proc(result: int, operands: []int) -> bool {
+	numPossibilities := int(math.pow_f32(3, f32(len(operands)-1)))
+	for i in 0..<numPossibilities {
+		operators := make([]Operator, len(operands)-1)
+		defer delete(operators)
+		for j in 0..<len(operators) {
+			digitVal := int(math.pow_f32(3, f32(j+1)))
+			digitValThird := digitVal/3
+			test := i % digitVal
+			if test < digitValThird {
+				operators[j] = .Add 
+			} else if test < (digitValThird*2) {
+				operators[j] = .Multiply
+			} else if test < (digitValThird*3) {
+				operators[j] = .Concat
+			}
+		}
+		if solveEquation(operands, operators) == result {
+			return true
+		}
+	}
+	return false
+}
+
 solveEquation :: proc(operands: []int, operators: []Operator) -> int {
 	prevResult := operands[0]
 	for i in 1..<len(operands) {
@@ -100,6 +125,13 @@ solveEquation :: proc(operands: []int, operators: []Operator) -> int {
 				prevResult += operands[i]
 			case .Multiply:
 				prevResult *= operands[i]
+			case .Concat:
+				builder := strings.builder_make()
+				strings.write_int(&builder, prevResult)
+				strings.write_int(&builder, operands[i])
+				resultStr := strings.to_string(builder)
+				defer delete(resultStr)
+				prevResult = strconv.atoi(resultStr)
 		}
 	}
 	return prevResult
